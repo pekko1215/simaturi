@@ -4,6 +4,7 @@ function main() {
     window.scrollTo(0, 0);
     var kokutied = false;
     var notplaypaysound = false;
+    var bigren = 0;
     slotmodule.on("allreelstop", function(e) {
         if (e.hits != 0) {
             if (e.hityaku.length == 0) return
@@ -16,23 +17,11 @@ function main() {
                 notplaypaysound = true;
             } else {
                 notplaypaysound = false;
-                if (e.hityaku[0].name === "JACIN") {
-                    slotmodule.setFlash(replaceMatrix(flashdata.syoto, matrix, colordata.LINE_F, null), 1000, function() {
-                        slotmodule.clearFlashReservation()
-                    });
-                } else {
-                    slotmodule.setFlash(null, 0, function(e) {
-                        slotmodule.setFlash(flashdata.default, 20)
-                        slotmodule.setFlash(replaceMatrix(flashdata.default, matrix, colordata.LINE_F, null), 20, arguments.callee)
-                    })
-                }
+                slotmodule.setFlash(null, 0, function(e) {
+                    slotmodule.setFlash(flashdata.default, 20)
+                    slotmodule.setFlash(replaceMatrix(flashdata.default, matrix, colordata.LINE_F, null), 20, arguments.callee)
+                })
             }
-        }
-        if (e.hits == 0 && jacflag && gamemode == "big") {
-            slotmodule.setFlash(flashdata.syoto)
-            slotmodule.once('bet', function() {
-                slotmodule.clearFlashReservation()
-            })
         }
         if (gamemode == "big") {
             bonusdata.bonusgame--;
@@ -52,31 +41,28 @@ function main() {
                         case "7":
                         case "BAR":
                             var bgmData = {
-                                "BAR": {
-                                    tag: "VBIG",
-                                    loopStart: 4.962
-                                },
-                                "7": {
-                                    tag: "7BIG",
-                                    loopStart: 3.073
-                                },
-                                "ネズミ": {
-                                    tag: "ネズミBIG",
-                                    loopStart: 6.414
+                                tag: "BIG1",
+                                loopStart: 3.586
+                            }
+                            if (bigren > 3) {
+                                bgmData = {
+                                    tag: 'BIG2',
+                                    loopStart: 2.058
                                 }
                             }
                             sounder.stopSound("bgm");
                             setGamemode('jac');
-                            sounder.playSound(bgmData[d.name].tag, true, null, bgmData[d.name].loopStart)
+                            sounder.playSound(bgmData.tag, true, null, bgmData.loopStart)
                             bonusdata = {
-                                bonusget: 360,
+                                bonusget: 240,
                                 geted: 0,
-                                jacgamecount : 24,
-                                jacgetcount : 24
+                                jacgamecount: 16,
+                                jacgetcount: 16
                             }
                             bonusflag = "none";
                             changeBonusSeg()
                             clearLamp()
+                            bigren++;
                             break;
                         case "REG":
                             setGamemode('jac');
@@ -85,12 +71,13 @@ function main() {
                             bonusdata = {
                                 bonusget: 461,
                                 geted: 0,
-                                jacgamecount : 5,
-                                jacgetcount : 5
+                                jacgamecount: 5,
+                                jacgetcount: 5
                             }
                             changeBonusSeg();
                             bonusflag = "none";
                             clearLamp()
+                            bigren = 0;
                             break;
                         case "チェリー":
                             matrix = matrix.map((arr) => {
@@ -107,6 +94,7 @@ function main() {
                 case 'big':
                     if (d.name == "JACIN") {
                         setGamemode('jac');
+                        sounder.playSound("reg", true);
                         bonusdata.jacincount--;
                         bonusdata.jacgamecount = 5;
                         bonusdata.jacgetcount = 5;
@@ -140,14 +128,17 @@ function main() {
         })
         if ((gamemode == "reg" || gamemode == 'jac' || gamemode == "big") && bonusdata.bonusgame == 0) {
             setGamemode('normal');
-            sounder.stopSound("bgm")
             segments.effectseg.reset();
-            slotmodule.once("payend", function() {})
+            slotmodule.once("payend", function() {
+                sounder.stopSound("bgm")
+            })
         }
         if (gamemode == "reg" || gamemode == 'jac') {
             if (bonusdata.jacgamecount == 0 || bonusflag.jacgetcount == 0) {
                 setGamemode('big');
-                sounder.stopSound("bgm")
+                slotmodule.once("payend", function() {
+                    sounder.stopSound("bgm")
+                })
             }
         }
         if (nexter) {
@@ -195,7 +186,7 @@ function main() {
         }
         if (!("paycount" in e)) {
             e.paycount = 0
-            e.se = slotmodule.playControlData.lotmode == 0 ? "pay" : "bpay"
+            e.se = "pay"
             replayflag && e.hityaku.hityaku[0].name != "チェリー" || notplaypaysound || sounder.playSound(e.se, true);
         }
         if (pays == 0) {
@@ -225,7 +216,7 @@ function main() {
             segments.payseg.setSegments(e.paycount)
             setTimeout(function() {
                 arg.callee(e)
-            }, 100)
+            }, 70)
         }
     })
     var jacflag = false;
@@ -288,18 +279,21 @@ function main() {
                         if (jacflag) {
                             ret = "JACIN"
                         } else {
-                            if(!rand(80)){
+                            if (!rand(80)) {
                                 jacflag = true;
                                 ret = "JACIN"
-                                if(!rand(4)){
-                                    ret = "1枚"+rand(2);
+                                if (rand(3)) {
+                                    ret = "1枚" + (rand(2)+1);
                                 }
                             }
                         }
                 }
                 break;
-            case "reg":
             case "jac":
+            case "reg":
+                if(bonusdata.bonusget <= 15){
+                    sounder.stopSound('bgm')
+                }
                 ret = "JACGAME"
                 break;
         }
@@ -364,23 +358,12 @@ function main() {
     sounder.addFile("sound/bet.wav", "3bet").addTag("se");
     sounder.addFile("sound/pay.wav", "pay").addTag("se");
     sounder.addFile("sound/replay.wav", "replay").addTag("se");
-    sounder.addFile("sound/7BIG.wav", "7BIG").addTag("bgm")
-    sounder.addFile("sound/VBIG.wav", "VBIG").addTag("bgm")
-    sounder.addFile("sound/nezumiBIG.wav", "ネズミBIG").addTag("bgm")
-    sounder.addFile("sound/handtohand.mp3", "hand").addTag("voice").addTag("se");
-    sounder.addFile("sound/JACNABI.wav", "jacnabi").addTag("se");
-    sounder.addFile("sound/big1hit.wav", "big1hit").addTag("se");
-    sounder.addFile("sound/CT1.mp3", "ct1").addTag("bgm");
-    sounder.addFile("sound/ctstart.wav", "ctstart").addTag("se");
-    sounder.addFile("sound/yattyare.wav", "yattyare").addTag("voice").addTag("se");
-    sounder.addFile("sound/delive.wav", "delive").addTag("voice").addTag("se");
+    sounder.addFile("sound/big1.mp3", "BIG1").addTag("bgm")
+    sounder.addFile("sound/big2.mp3", "BIG2").addTag("bgm")
     sounder.addFile("sound/reg.wav", "reg").addTag("bgm");
     sounder.addFile("sound/big2.mp3", "big2").addTag("bgm");
-    sounder.addFile("sound/reglot.mp3", "reglot").addTag("se");
-    sounder.addFile("sound/bigselect.mp3", "bigselect").addTag("se")
     sounder.addFile("sound/syoto.mp3", "syoto").addTag("se")
     sounder.addFile("sound/kokuti.wav", "kokutise").addTag("se");
-    sounder.addFile("sound/widgetkokuti.mp3", "widgetkokuti").addTag("voice").addTag("se");
     sounder.addFile("sound/bpay.wav", "bpay").addTag("se").setVolume(0.5);
     sounder.setVolume("se", 0.2)
     sounder.setVolume("bgm", 0.7)
@@ -585,9 +568,9 @@ function main() {
     }
 
     function changeBonusSeg() {
-        if(bonusdata.bonusget>=400){
+        if (bonusdata.bonusget >= 400) {
             segments.effectseg.setSegments("");
-            return 
+            return
         }
         var tmp = bonusdata.bonusget - bonusdata.geted
         if (tmp < 0) {
@@ -649,17 +632,15 @@ function main() {
             case 'normal':
                 if (!kokutied) {
                     slotmodule.once('stop3', () => {
-                        sounder.playSound('kokutise', false, () => {
-                        });
+                        sounder.playSound('kokutise', false, () => {});
                     })
                     kokutied = true;
                 }
                 break;
             case 'big':
-                if(!kokutied&&lot == "JACIN"){
-                    slotmodule.once(['stop3','stop1'][rand(2)], () => {
-                        sounder.playSound('kokutise', false, () => {
-                        });
+                if (!kokutied && lot == "JACIN") {
+                    slotmodule.once(['stop3', 'stop1'][rand(2)], () => {
+                        sounder.playSound('kokutise', false, () => {});
                     })
                     kokutied = true;
                 }

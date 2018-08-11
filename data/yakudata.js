@@ -12,7 +12,7 @@ var YakuData = [
     },
     {
         name: "ベル",
-        pay: [10, 10, 15]
+        pay: [3, 3, 15]
     },
     {
         name: "スイカ",
@@ -77,6 +77,10 @@ var YakuData = [
     {
         name: "JACGAME",
         pay: [0, 0, 15]
+    },
+    {
+        name: "スイカ",
+        pay: [13, 13, 0]
     }
 ]
 YakuData.push(...Array(4).fill({
